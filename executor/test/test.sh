@@ -1,4 +1,6 @@
 #!/bin/bash
 cd ..
-./bare_exec.sh test/test_jobdir
+JOBID=$(./bare_exec.sh $(pwd)/test/test_jobdir)
+[ "$JOBID" != "" ] &&\
+  ./bare_status.sh $JOBID 
 cd - >>/dev/null

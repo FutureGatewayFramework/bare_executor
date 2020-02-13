@@ -12,36 +12,6 @@ cleanup() {
   job_info end $(ts)
 }
 
-job_info() {
-  [ ! -f $BEXE_JOBINFO ] &&\
-    return 0
-  INFO_ITEM=$1
-  shift 1
-  BEXE_TS=$(ts)
-  case "$INFO_ITEM" in
-    'start')
-      sed -i '$BEXE_TS' s/"^START=.*"/"START=${BEXE_TS}"/ $BEXE_JOBINFO
-    ;;
-    'status')
-      BEXE_STATUS=$@
-      sed -i '$BEXE_TS' s/"^STATUS=.*"/"STATUS=${BEXE_STATUS}"/ $BEXE_JOBINFO
-    ;;
-   'end')
-      sed -i '$BEXE_TS' s/"^END=.*"/"END=${BEXE_TS}"/ $BEXE_JOBINFO
-    ;;
-    'process')
-      BEXE_PROCESS=$@
-      sed -i '$BEXE_TS' s/"^PID=.*"/"PID=${BEXE_PROCESS}"/ $BEXE_JOBINFO
-    ;;
-    'message')
-      BEXE_MESSAGE=$@
-      echo "# "$BEXE_TS" "$BEXE_MESSAGE >> $BEXE_JOBINFO
-    ;;
-    *)
-    log warning "Unknown job info command: '"$INFO_ITEM"'"
-  esac
-}
-
 init() {
   log debug "Starting execution"
   BEXE_IODIR=$1
@@ -54,6 +24,7 @@ START=${BEXE_TS}
 STATUS=${BEXE_PROCESSING}
 END=unknown
 PID=unknown
+RETCODE=unknown
 EOF
   [ ! -f $BEXE_JOBINFO ] &&\
     fail "Unable to create the job info file: '"$BEXE_JOBINFO"'"
@@ -63,15 +34,6 @@ EOF
     cp -rp $BEXE_IODIR/$file $BEXE_RUNDIR/
   done
   cd $BEXE_RUNDIR
-  ls -l
-}
-
-fail() {
-  BEXE_MESSAGE=$@
-  log error $BEXE_MESSAGE
-  job_info status $BEXE_ABORTED
-  job_info message $BEXE_MESSAGE
-  exit 1
 }
 
 check() {
@@ -106,7 +68,7 @@ check() {
   [ $BEXE_RES -ne 0 ] &&\
     fail "Executable not specified in the job description file: '"$BEXE_JOBDESC"'"
   BEXE_EXECUTABLE=$(echo $BEXE_EXECUTABLE | xargs echo)
-  type $BEXE_EXECUTABLE ||\
+  type $BEXE_EXECUTABLE >>/dev/null ||\
     fail "Invalid job executable '"$BEXE_EXECUTABLE"'"
   job_info message "Executable: '"$BEXE_EXECUTABLE"'"
   # Arguments
@@ -144,7 +106,7 @@ check() {
 exec() {
   # Perform execution
   chmod +x $BEXE_EXECUTABLE
-  time $BEXE_EXECUTABLE $BEXE_ARGUMENTS 2>$BEXE_OUTPUT >$BEXE_ERROR &
+  $BEXE_EXECUTABLE $BEXE_ARGUMENTS 2>$BEXE_OUTPUT >$BEXE_ERROR &
   BEXE_PROCESS=$!
   [ "$BEXE_PROCESS" = "" ] &&\
     fail "Failed to execute: ' time "$BEXE_EXECUTABLE" "$BEXE_ARGUMENTS" 2>"$BEXE_OUTPUT" >"$BEXE_ERROR"'"
@@ -155,7 +117,6 @@ exec() {
 # Startup
 #
 
-# Initialization
 init $@ &&\
 check &&\
 exec &&\

@@ -50,3 +50,46 @@ log() {
     *)
   esac
 }
+
+fail() {
+  BEXE_MESSAGE=$@
+  log error $BEXE_MESSAGE
+  job_info status $BEXE_ABORTED
+  job_info message $BEXE_MESSAGE
+  exit 1
+}
+
+job_info() {
+  [ ! -f $BEXE_JOBINFO ] &&\
+    return 0
+  INFO_ITEM=$1
+  shift 1
+  BEXE_TS=$(ts)
+  case "$INFO_ITEM" in
+    'start')
+      sed -i.prev s/"^START=.*"/"START=${BEXE_TS}"/ $BEXE_JOBINFO
+    ;;
+    'status')
+      BEXE_STATUS=$@
+      sed -i.prev s/"^STATUS=.*"/"STATUS=${BEXE_STATUS}"/ $BEXE_JOBINFO
+    ;;
+   'end')
+      sed -i.prev s/"^END=.*"/"END=${BEXE_TS}"/ $BEXE_JOBINFO
+    ;;
+    'process')
+      BEXE_PROCESS=$@
+      sed -i.prev s/"^PID=.*"/"PID=${BEXE_PROCESS}"/ $BEXE_JOBINFO
+    ;;
+    'retcode')
+      BEXE_RETCODE=$@
+      sed -i.prev s/"^RETCODE=.*"/"RETCODE=${BEXE_RETCODE}"/ $BEXE_JOBINFO
+    ;;
+    'message')
+      BEXE_MESSAGE=$@
+      echo "# "$BEXE_TS" "$BEXE_MESSAGE >> $BEXE_JOBINFO
+    ;;
+    *)
+    log warning "Unknown job info command: '"$INFO_ITEM"'"
+  esac
+  rm -f "$BEXE_JOBINFO".prev
+}
