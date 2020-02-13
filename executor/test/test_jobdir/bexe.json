@@ -1,0 +1,5 @@
+{ "executable": "/bin/bash", 
+  "arguments": [ "script.sh", "arg_1", "arg 2", "arg 3" ],
+  "output": "output.txt",
+  "error": "error.txt",
+  "output_files": [ "script.out" ]}
